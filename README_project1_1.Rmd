@@ -1,0 +1,81 @@
+---
+title: "test"
+author: "Meng Luo"
+date: "2021/9/21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r project_1, echo=FALSE}
+
+## start my code
+#install.packages("rvest")
+#install.packages("XML")
+#install.packages("dplyr")
+library(rvest) # rvest
+library(stringr)
+library(XML)
+library(dplyr)
+
+Murl = 'https://guide.wisc.edu/faculty/'
+web = Murl %>% read_html(encoding="utf-8")  # utf-8
+#use xpath to find the useful block
+md4 = Murl %>% 
+  read_html(encoding="utf-8") %>%
+  html_nodes(xpath = '//ul[@class="uw-people"]')
+#save
+Nummd4 <- 1:26
+for (i in Nummd4){
+  print (i)
+  md5 <- md4[i]
+  # find each faculty
+  People <- unlist(strsplit(as.character(md5), "</p></li>"))
+  NumPeople <- 1:length(People)
+  for (j in NumPeople){
+    People1 = People[j]
+    Peopleinfo <- unlist(strsplit(People1, "<br>"))
+    Peopleinfotrans <- unlist(strsplit(Peopleinfo[1], "<p>"))
+    Peopleinfo[1] <- Peopleinfotrans[2]
+    Peopleinfo[5] <- LETTERS[i]
+    if (i == 1 & j == 1){
+      facultydata<-Peopleinfo
+    }
+    facultydata<-data.frame(facultydata,Peopleinfo)
+  }
+    
+  
+}
+facultydata1 <- t(facultydata)
+facultydata1 <- as.data.frame(facultydata1)
+# plot
+G1 <- group_by(facultydata1,V2)
+sG1 <- summarise(G1,n = n())
+sG1 <- na.omit(sG1)
+sG1 <- as.matrix(sG1)
+
+
+
+```
+## plot 
+
+```{r plot2, include=TRUE}
+
+# plot(sG1[,2],xaxt="n",type="h")
+# axis(1,1:length(sG1[,1]),sG1[,1],cex.axis=0.6)
+sG1 <- as.data.frame(sG1)
+sG1[,2] <- as.numeric(sG1[,2])
+sG1 <- arrange(sG1,n,V2)
+sG1[1:69,1] <- ""
+pie(sG1[,2], labels = sG1[,1], main="Pie Chart of Faculty")
+# text(0.5,0.5,"Assistant Professor")
+
+```
