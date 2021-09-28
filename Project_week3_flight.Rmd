@@ -1,0 +1,91 @@
+---
+title: "homework2"
+author: "Meng Luo"
+date: "2021/9/28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r flight, echo=TRUE}
+library(dplyr)
+
+# install.packages("nycflights13")
+library(nycflights13)
+library(ggplot2)
+
+flights
+
+```
+
+```{r Q1, echo=TRUE}
+#Q1.1:ow many flights have a missing dep_time?
+ na_dep <- flights %>% filter(is.na(dep_delay))
+ # get the number of flights that have a missing dep_time
+ num_na_dep <- nrow(na_dep)
+ 
+ # Q1.2:What other variables are missing? What might these rows represent?
+ # get the col num has na
+list <- which(colSums(is.na(na_dep))>0)
+ # get the col has na
+list_na <- na_dep[,list]
+
+# Q1.3:What might these rows represent?
+# A:These flight might be canceled
+```
+
+```{r Q2, echo=TRUE}
+#Q2:Currently dep_time and sched_dep_time are convenient to look at,
+# but hard to compute with because they’re not really continuous numbers.
+# Convert them to a more convenient representation of number of minutes
+# since midnight.
+#  create new variables!  mutate --> columns.
+
+F1 <- flights %>%
+    mutate(dep_time_min = floor(dep_time/100)*60+(dep_time-floor(dep_time/100)),
+           sched_dep_time_min = floor(sched_dep_time/100)*60+(sched_dep_time-floor(sched_dep_time/100)))
+```
+
+```{r Q3, echo=TRUE}
+# Q3.1:Look at the number of canceled flights per day. Is there a pattern?
+# need select canceled canceled flights at everyday,summarize
+F_canceled_perd <-flights %>%
+    group_by(year,month,day) %>%
+    filter(is.na(dep_time),is.na(dep_delay),is.na(arr_time),is.na(arr_delay) )%>%
+    summarise(c = n())
+time = t(1:358)
+cnum = (F_canceled_perd[,4])[[1]]
+plot(time,cnum,xlim = c(0,365),ylim=c(0,250))
+# It seems that there are more number and frequency flights canceled in spring and summer (may due to heavy rain),
+# fewer  canceled in autumn and winter (there are many flights canceled in several days in winter which may be due to heavy snow)
+#########################################
+# Q3.2:Is the proportion of canceled flights related to the average delay?
+# get the sum of each flight ,sum canceled flights and heir average delay
+
+flightF_f_sum3 <-flights %>%
+    mutate(if_cancel = is.na(dep_time)*is.na(dep_delay)*is.na(arr_time)*is.na(arr_delay))%>%
+    group_by(flight)%>%
+    summarise(f_s = n(), c_s = sum(if_cancel) ,delay = mean(dep_delay, na.rm = TRUE))
+
+# the proportion of canceled flights
+flightF_f_sum3 <-flightF_f_sum3 %>%
+    mutate(c_pro = flightF_f_sum3[,3]/flightF_f_sum3[,2])
+
+flightF_f_sum4 <- flightF_f_sum3 %>%
+    filter(is.na(delay) == FALSE , delay <100)
+
+plot(flightF_f_sum4[[4]],flightF_f_sum4[[5]][[1]])
+    
+R_2 = cor(flightF_f_sum3[,4],flightF_f_sum3[,5],use = "complete.obs")
+
+# R_2 = 0.217 not significant relative
+# Q3.3:Use multiple dyplr operations, all on one line, concluding with ggplot(aes(x= ,y=)) + geom_point()
+flightF_f_sum3 %>%
+    filter(is.na(delay) == FALSE , delay <100) %>% 
+    ggplot(aes(x=delay ,y=c_pro[[1]])) + geom_point()
+```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
