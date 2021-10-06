@@ -1,0 +1,183 @@
+---
+title: "week_4"
+author: "Meng Luo"
+date: "2021/10/5"
+output: html_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r introduction}
+
+# link: git@github.com:JGCRI/gcam-core.git
+#there is no pattern in the relation between weather and delay
+#there is no pattern in the relation between tailnum and delay
+#when the departure is earlier the mean delay is lower. However in summer , the best departure time is later than other three season
+```
+
+## Including Plots
+
+```{r Pattern1, echo=TRUE}
+# 
+library(dplyr)
+#install.packages("tidyverse")
+library(nycflights13)
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+
+
+
+w = weather
+weather2 = weather%>%
+  mutate(date = make_date(year,month,day))%>%
+  group_by(date,origin)%>%
+  summarize(min_vis = min(visib,na.rm = T),mean_vis = mean(visib,na.rm = T),mean_tem = mean(temp,na.rm = T))
+
+
+flights%>%
+  mutate(date = make_date(year,month,day))%>%
+  group_by(date,origin)%>%
+  summarise(delay = abs(dep_delay+arr_delay))%>%
+  left_join(weather2)%>%
+  ggplot(aes(x = mean_vis,y = delay))+
+  geom_point()+
+  geom_smooth()+
+  facet_wrap(~origin)
+
+flights%>%
+  mutate(date = make_date(year,month,day))%>%
+  group_by(date,origin)%>%
+  summarise(delay = abs(dep_delay+arr_delay))%>%
+  left_join(weather2)%>%
+  ggplot(aes(x = mean_tem,y = delay))+
+  geom_point()+
+  geom_smooth()+
+  facet_wrap(~origin)
+
+flights%>%
+  mutate(date = make_date(year,month,day))%>%
+  group_by(date,origin)%>%
+  summarise(delay = abs(dep_delay+arr_delay))%>%
+  left_join(weather2)%>%
+  ggplot(aes(x = min_vis,y = delay))+
+  geom_point()+
+  geom_smooth()+
+  facet_wrap(~origin)
+
+# It seems that there is no pattern in relation between weather and delay
+```
+
+```{r Pattern2, echo=TRUE}
+# tailnum
+library(dplyr)
+#install.packages("lubridate")
+library(nycflights13)
+library(ggplot2)
+library(lubridate)
+
+
+F = flights
+F1 = flights %>% 
+  select(hour, minute,dep_delay,arr_delay,tailnum) %>% 
+  mutate(departure = hour*60+minute)
+
+F2 = F1 %>%
+  mutate(delay = abs(dep_delay+arr_delay))
+
+F3 = F2 %>% 
+  select(departure,delay,tailnum) 
+# plot delay time for each tailnum
+F3%>%
+  ggplot(aes(x=tailnum ,y=delay)) + geom_point()
+# filter flight with no delay
+F4 = F3 %>%
+  arrange(delay, tailnum, departure)%>%
+  filter(delay == 0)
+
+F4%>%
+  ggplot(aes(x=departure ,y=tailnum)) + geom_point()
+# It seems there is no pattern in tailnum
+F5 = F3%>%
+  group_by(delay,tailnum,departure)%>%
+  summarise (mean_delay = mean(abs(delay),na.rm = 'TRUE'))
+
+
+F5%>%
+  ggplot(aes(x=tailnum ,y=mean_delay)) +
+  geom_point()+
+  geom_smooth(se = F,method = 'lm')
+
+
+
+```
+
+```{r Pattern3, echo=TRUE}
+# season
+library(dplyr)
+#install.packages("lubridate")
+library(nycflights13)
+library(ggplot2)
+library(lubridate)
+
+F = flights
+F1 = flights %>% 
+  select(year, month, day, hour, minute,dep_delay,arr_delay) %>% 
+  mutate(departure = hour*60+minute)
+
+F2 = F1 %>%
+  mutate(delay = (dep_delay+arr_delay))
+
+# season = 1 winter month:12-2;2 spring month:3-5;3 summer month:6-8;4 autumn month:9-11
+F3 = F2 %>%
+  mutate(season = 1+(4+ceiling((month-2)/3))%%4 )
+# season 1
+F4_1 = F3%>%
+  filter(season==1)%>%
+  group_by(departure)%>%
+  summarise(mean_delay = mean(abs(delay),na.rm = 'TRUE'))
+
+  F4_1%>%
+    ggplot(aes(x=departure ,y=mean_delay)) + geom_point()
+  # season 2
+F4_2 = F3%>%
+  filter(season==2)%>%
+  group_by(departure)%>%
+  summarise(mean_delay = mean(abs(delay),na.rm = 'TRUE'))
+
+  F4_2%>%
+    ggplot(aes(x=departure ,y=mean_delay)) + geom_point()
+  # season 3
+F4_3 = F3%>%
+  filter(season==3)%>%
+  group_by(departure)%>%
+  summarise(mean_delay = mean(abs(delay),na.rm = 'TRUE'))
+
+  F4_3%>%
+    ggplot(aes(x=departure ,y=mean_delay)) + geom_point()
+  # season 4
+F4_4 = F3%>%
+  filter(season==4)%>%
+  group_by(departure)%>%
+  summarise(mean_delay = mean(abs(delay),na.rm = 'TRUE'))
+
+  F4_4%>%
+    ggplot(aes(x=departure ,y=mean_delay)) + geom_point()
+
+
+  
+
+# the 4 figures show the mean delay of departure time in winter, spring, summer and autumn. It seems the when the departure is earlier the mean delay is lower. However in summer , the best departure time is later than other three season
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
